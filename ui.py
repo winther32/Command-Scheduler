@@ -1,16 +1,14 @@
 import time
 import logging as log
 from pynput import keyboard
+from commands import Commands
 
 
-# Holds all of the UI functions and stores the state of the user preferences
+# Holds all of the UI functions and acts as form that stores the state of the user preferences
 class Interface:
     def __init__(self):
         self.length = 0
-        self.highlow = False
-        self.fish = False
-        self.work = False
-        self.trivia = False
+        self.commands = []
 
     # prompts the user for input. returns input
     def get_runtime(self):
@@ -28,49 +26,57 @@ class Interface:
                 break
 
     # prompts user for which commands to run
-    def flags(self):
-        try:
-            if str(input("highlow? (y/n) ")).lower() in "yes":
-                self.highlow = True
-            if str(input("fish? (y/n) ")).lower() in "yes":
-                self.fish = True
-            if str(input("work? (y/n) ")).lower() in "yes":
-                self.work = True
-            if str(input("trivia? (y/n) ")).lower() in "yes":
-                self.trivia = True
-        except ValueError:
-            print("Error setting state flags. Quitting.")
-            log.exception("Failed to set UI state flags")
-            quit()
+    def get_commands(self):
+        print("Select commands you wish to run:")
+        for c in Commands.__subclasses__():
+            cls = c()
+            try:
+                if str(input(cls.name + ": (y/n)")).lower() in "yes":
+                    self.commands.append(cls)
+            except ValueError:
+                print("Error setting state flags. Quitting.")
+                log.exception("Failed to get commands from user.")
+                quit()
 
     # sets the state of the interface to user preset
     def set_state(self):
         self.get_runtime()
-        self.flags()
+        self.get_commands()
 
     # method asking for user input to start
     @staticmethod
     def start():
-        def on_press(key):
-            if key == keyboard.Key.enter:
-                time.sleep(.5)
-                print("Starting output in 5 seconds!")
-                for i in range(5):
-                    print("{}  ".format(5 - i), end="")
-                    time.sleep(1)
-                    print("\r", end="")
-                return False  # stop the listener and release thread
+        result = []  # wrapper for bool
 
+        def on_press(key, decision=None):
+            if decision is None:
+                decision = result
+            if key == keyboard.Key.enter:
+                decision.append(True)
+                return False  # stop the listener and release thread
             if key == keyboard.Key.esc:
+                decision.append(False)
                 # Stop listener w/exception
-                raise Exception
+                return False
 
         print("Press Enter to begin or Esc to cancel.")
         # Collect events until released
-        with keyboard.Listener(
-                on_press=on_press) as listener:
+        with keyboard.Listener(on_press=on_press) as listener:
             try:
                 listener.join()
+                if result[0]:
+                    return True
+                else:
+                    print("Canceled")
+                    return False
             except Exception:
-                quit()  # Gross but works to kill the process I guess...
+                return False
 
+    # begins a countdown in run console from 5
+    @staticmethod
+    def count_down():
+        print("Starting output in 5 seconds!")
+        for i in range(5):
+            print("{}  ".format(5 - i), end="")
+            time.sleep(1)
+            print("\r", end="")
