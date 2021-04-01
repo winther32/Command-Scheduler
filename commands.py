@@ -12,7 +12,7 @@ from pynput.keyboard import Key, Controller
 # Abstract parent command class
 # All commands to be run must be direct subclasses of this class.
 class Commands:
-    # Keyboard controller for pancake bot typing input
+    # Keyboard controller for typing input
     keyboard = Controller()
     name = "Root"
     delay = 0  # seconds between executions
